@@ -84,13 +84,17 @@ class MarkdownGeditPluginWindow(GObject.Object, Gedit.WindowActivatable, PeasGtk
 		self._handlers = []
 		self._settings = Gio.Settings.new(MD_PREVIEW_KEY_BASE)
 
-		self._connect_handler(self.window, 'active-tab-changed')
-		self._connect_handler(self.window, 'active-tab-state-changed')
-		self._connect_handler(self.window.get_bottom_panel(), 'notify::visible-child')
-		self._connect_handler(self.window.get_side_panel(), 'notify::visible-child')
+		self.window.connect('active-tab-changed', self.on_tab_changed)
+		
+#		self._connect_handler(self.window.get_bottom_panel(), 'notify::visible-child')
+#		self._connect_handler(self.window.get_side_panel(), 'notify::visible-child')
 
 		self.connect_actions()
 		self.preview.do_activate()
+
+	def on_tab_changed(self, window, data = None):
+		doc = window.get_active_document()
+		self._connect_handler(doc, 'loaded')
 
 	def _connect_handler(self, widget, signal_name):
 		sig_id = widget.connect(signal_name, self.preview.on_file_changed)
@@ -102,8 +106,8 @@ class MarkdownGeditPluginWindow(GObject.Object, Gedit.WindowActivatable, PeasGtk
 
 	def do_deactivate(self):
 		self.preview.do_deactivate()
-		self.window.disconnect(self._handlers[0])
-		self.window.disconnect(self._handlers[1])
+		for i in range(len(self._handlers)):
+			self.window.disconnect(self._handlers[i])
 
 	def add_action_simple(self, action_name, callback):
 		new_action = Gio.SimpleAction(name=action_name)

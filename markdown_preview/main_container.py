@@ -2,7 +2,7 @@
 # GPL v3
 
 import subprocess, gi, os
-from gi.repository import Gtk, Gio, GLib
+from gi.repository import Gtk, Gio, GLib, Tepl
 from .utils import get_backends_dict, init_gettext, recognize_format
 from .webview_manager import MdWebViewManager
 from .constants import MD_PREVIEW_KEY_BASE, MARKDOWN_SPLITTERS, BASE_TEMP_NAME
@@ -65,10 +65,11 @@ class MdMainContainer(Gtk.Box):
 
 	# This is called every time the gui is updated
 	def do_update_state(self):
-		if not self.panel.props.visible:
-			return
-		elif self.panel.get_visible_child() != self.preview_bar:
-			return
+#		if not self.panel.props.visible:
+#			return
+#		elif self.panel.get_active_item() != self.preview_bar:
+#			return
+
 		if self.parent_plugin.window.get_active_view() is not None:
 			if self.auto_reload:
 				self.on_reload()
@@ -251,8 +252,8 @@ class MdMainContainer(Gtk.Box):
 
 		# Guard clause: it will not load documents if the panel is already used
 		# for something else
-		if self.panel.get_visible_child() != self.preview_bar:
-			return
+		#if self.panel.get_visible_child() != self.preview_bar:
+		#	return
 
 		if self._reload_is_locked:
 			return
@@ -265,6 +266,7 @@ class MdMainContainer(Gtk.Box):
 		self._on_reload_unsafe()
 
 	def _on_reload_unsafe(self):
+
 		"""Must be called ONLY by `on_reload` which checks pre-conditions, or by
 		`_unlock_reload` which is called only by `on_reload` itself."""
 		html_content = ''
@@ -365,6 +367,7 @@ class MdMainContainer(Gtk.Box):
 		cached settings if pertinent."""
 		document = self.parent_plugin.window.get_active_document()
 		extension = recognize_format(document)
+
 		ret = None
 		# It will not load documents which are not .md/.html
 		if extension == 'md':
@@ -436,41 +439,43 @@ class MdMainContainer(Gtk.Box):
 				window.get_bottom_panel().hide()
 
 	def get_wanted_position(self):
-		position = self._settings.get_string('position')
-		window = self.parent_plugin.window
-		if position == 'auto':
-			width = window.get_allocated_width()
-			if width < 100:
-				return 'side' # i hardcode that to have my terminal accessible
-			ratio = width / window.get_allocated_height()
-			if ratio > 1.2:
-				position = 'side'
-			else:
-				position = 'bottom'
-		return position
+		# remove bottom panel for now
+		#position = self._settings.get_string('position')
+		#window = self.parent_plugin.window
+		#if position == 'auto':
+		#	width = window.get_allocated_width()
+		#	if width < 100:
+		#		return 'side' # i hardcode that to have my terminal accessible
+		#	ratio = width / window.get_allocated_height()
+		#	if ratio > 1.2:
+		#		position = 'side'
+		#	else:
+		#		position = 'bottom'
+		return 'side'
 
 	def show_on_panel(self):
 		position = self.get_wanted_position()
 		# Get the bottom bar (a Gtk.Stack), or the side bar, and add our box to it.
+
 		if position == 'bottom':
 			self.panel = self.parent_plugin.window.get_bottom_panel()
 			self.preview_bar.props.orientation = Gtk.Orientation.HORIZONTAL
 			self.buttons_main_box.props.orientation = Gtk.Orientation.VERTICAL
 		else: # if position == 'side':
-			self.panel = self.parent_plugin.window.get_side_panel()
+			if (len(self.parent_plugin.window.get_side_panel().get_items()) <3) :
+				self.panel = Tepl.Panel.add(self.parent_plugin.window.get_side_panel(),self.preview_bar, 'markdown_preview', _("Markdown Preview"), None)
 			self.preview_bar.props.orientation = Gtk.Orientation.VERTICAL
 			self.buttons_main_box.props.orientation = Gtk.Orientation.HORIZONTAL
-		self.panel.add_titled(self.preview_bar, 'markdown_preview', _("Markdown Preview"))
-		self.panel.set_visible_child(self.preview_bar)
 		self.preview_bar.show_all()
+
 		self._close_warning() # because the `show_all` shouldn't show that
 		self.pages_box.props.visible = (self._pagination_mode != 'whole')
-		if self.parent_plugin.window.get_state() == 'STATE_NORMAL':
+		if self.parent_plugin.window.get_state() == 0:
 			self.on_reload()
 
 	def remove_from_panel(self):
 		if self.panel is not None:
-			self.panel.remove(self.preview_bar)
+			self.parent_plugin.window.get_side_panel().remove(self.panel)
 
 	def _update_container_position(self, *args):
 		self.remove_from_panel()
@@ -480,12 +485,13 @@ class MdMainContainer(Gtk.Box):
 		self._update_panel_visibility()
 
 	def _update_panel_visibility(self):
-		if not self.auto_manage_panel or self._file_format == None:
-			if self.panel.props.visible:
-				if self.panel.get_visible_child() == self.preview_bar:
-					self.panel.hide()
-		else:
-			self.panel.show()
+		#if not self.auto_manage_panel or self._file_format == None:
+		#	if self.panel.get_widget != None:
+		#		if self.parent_plugin.window.get_side_panel() == self.panel:
+		#			self.panel.hide()
+		#else:
+		#	self.panel.show()
+		pass
 
 	############################################################################
 ################################################################################
